@@ -8,7 +8,7 @@ import ProductDetail from './pages/ProductDetail';
 import JournalFeed from './pages/JournalFeed';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
-import ProtectedRoot from './components/ProtectedRoot';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -23,7 +23,7 @@ function App() {
           <Route path="/journal" element={<JournalFeed />} />
           <Route path="/login" element={<Login />} />
           
-          <Route element={<ProtectedRoot adminOnly={true} />}>
+          <Route element={<ProtectedRoute adminOnly={true} />}>
             <Route path="/admin/*" element={<AdminDashboard />} />
           </Route>
         </Routes>
