@@ -49,11 +49,30 @@ app.use((req, res, next) => {
   next();
 });
 
+// ─── Lazy DB Connect (Vercel Serverless) ─────────────────────────────────────
+// On Vercel, module.exports = app means there is NO persistent process.
+// connectDB() is never called at boot. This middleware ensures Sequelize
+// authenticates on the FIRST request of each cold start, then caches the
+// connection for all subsequent requests in the same function instance.
+let dbConnected = false;
+app.use(async (req, res, next) => {
+  if (!dbConnected) {
+    try {
+      await connectDB();
+      dbConnected = true;
+    } catch (err) {
+      console.error('❌ DB connect failed on request:', err.message);
+      return res.status(503).json({ message: 'Database unavailable. Check server logs.' });
+    }
+  }
+  next();
+});
+
 // ─── Health Check (DB ping) ───────────────────────────────────────────────────
 app.get('/api/health', async (req, res) => {
   try {
     await sequelize.authenticate();
-    res.json({ status: 'ok', database: '✅ MySQL Connected' });
+    res.json({ status: 'ok', database: '✅ MySQL (Aiven) Connected' });
   } catch (e) {
     res.json({ status: 'degraded', database: `❌ ${e.message}` });
   }
@@ -90,7 +109,8 @@ if (process.env.NODE_ENV !== 'production') {
       await sequelize.sync({ alter: true });
       console.log('✅ DATABASE: All tables created/synced');
     } catch (err) {
-      console.warn('⚠️ Table sync issue:', err.message);
+      console.error('❌ Cannot start — DB connection failed:', err.message);
+      process.exit(1); // Don't start the server if DB is unreachable
     }
 
     app.listen(PORT, () => {

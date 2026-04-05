@@ -1,50 +1,55 @@
 const { Sequelize } = require('sequelize');
-const mysql = require('mysql2/promise');
 const path = require('path');
+
+// 1. Nadiw l-variables men .env (wast folder backend)
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
-const DB_NAME = process.env.DB_NAME || 'petjourney';
-const DB_USER = process.env.DB_USER || 'root';
-const DB_PASS = process.env.DB_PASSWORD || '';
-const DB_HOST = process.env.DB_HOST || '127.0.0.1';
-const DB_PORT = parseInt(process.env.DB_PORT) || 3306;
+// 2. Logic bach n-viriifiw wach 7na f Cloud wala Local
+const isCloud = process.env.DB_HOST && process.env.DB_HOST.includes('aivencloud.com');
 
-// Step 1: Create the database if it doesn't exist
-const ensureDatabase = async () => {
-  try {
-    const conn = await mysql.createConnection({
-      host: DB_HOST,
-      port: DB_PORT,
-      user: DB_USER,
-      password: DB_PASS,
+const sequelize = new Sequelize(
+  process.env.DB_NAME || 'defaultdb',
+  process.env.DB_USER || 'avnadmin',
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST || '127.0.0.1',
+    port: process.env.DB_PORT || (isCloud ? 11895 : 3306),
+    dialect: 'mysql',
+    logging: false, // Disable logs bach terminal y-bqa nqi
+    dialectOptions: {
       connectTimeout: 10000,
-    });
-    await conn.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\`;`);
-    await conn.end();
-    console.log(`✅ DATABASE: '${DB_NAME}' is ready`);
-  } catch (err) {
-    console.error('❌ MySQL Connection Error:', err.message);
-    console.error('   → Make sure Laragon/XAMPP MySQL is running on port', DB_PORT);
+      ssl: isCloud ? {
+        require: true,
+        rejectUnauthorized: false // 🚨 HADA HOUWA L-MOUFTAH
+      } : false
+    },
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
   }
-};
+);
 
-// Step 2: Sequelize instance (connects to petjourney database)
-const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASS, {
-  host: DB_HOST,
-  port: DB_PORT,
-  dialect: 'mysql',
-  logging: false,
-  dialectOptions: { connectTimeout: 10000 },
-  pool: { max: 5, min: 0, acquire: 30000, idle: 10000 },
-});
-
+// 3. Fonction dial l-Connection
 const connectDB = async () => {
-  await ensureDatabase();
   try {
     await sequelize.authenticate();
-    console.log('✅ MySQL Connected & Tables Synced');
+    console.log(`✅ DATABASE: ${isCloud ? 'Cloud (Aiven)' : 'Local'} MySQL Connected!`);
+
+    // Sync tables (Alter: true kat-zid l-columns bla ma t-mme7 l-data)
+    await sequelize.sync({ alter: true });
+    console.log('✅ DATABASE: All tables synced.');
   } catch (error) {
-    console.error('❌ MySQL Connection Error:', error.message);
+    console.error('❌ DATABASE Error:', error.message);
+
+    if (!isCloud) {
+      console.error('  → Tip: Check if XAMPP/Laragon MySQL is running.');
+    }
+
+    // Mat-khllich l-app t-kemmel ila makanch connection
+    process.exit(1);
   }
 };
 
