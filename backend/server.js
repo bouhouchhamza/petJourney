@@ -44,24 +44,28 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api', require('./routes/rootRoutes'));
 
 // Boot sequence
-const start = async () => {
-  await connectDB();
+// 1. Export l-app darouri bach Vercel i-choufha
+module.exports = app;
 
+// 2. Modified Boot sequence (Only runs locally)
+const start = async () => {
   try {
+    await connectDB();
     await sequelize.sync({ alter: true });
     console.log('✅ DATABASE: All tables created/synced');
   } catch (err) {
-    console.warn('⚠️  Table sync issue (MySQL might be offline):', err.message);
+    console.warn('⚠️ Table sync issue:', err.message);
   }
 
-  app.listen(PORT, () => {
-    console.log('╔══════════════════════════════════════╗');
-    console.log(`║  ✅  Backend running on port ${PORT}      ║`);
-    console.log(`║  🗄️   MySQL + Sequelize ready          ║`);
-    console.log('╚══════════════════════════════════════╝');
-    console.log('\n  To seed admin + products, run:');
-    console.log('  node backend/seeder.js\n');
-  });
+  // Khalli app.listen i-khdem ghir ila knti f Local (machi f Vercel)
+  if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+      console.log(`║  ✅  Backend running on port ${PORT}      ║`);
+    });
+  }
 };
 
-start();
+// Ila knti f local, run start(). Ila f Vercel, connectDB() khass t-call-a f wast l-routes
+if (process.env.NODE_ENV !== 'production') {
+  start();
+}
