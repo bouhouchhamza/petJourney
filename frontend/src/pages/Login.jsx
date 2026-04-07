@@ -11,11 +11,14 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
     try {
       await login(email, password);
       navigate('/admin');
     } catch (err) {
-      setError(err.message);
+      // Axios wraps server errors inside err.response.data
+      const msg = err?.response?.data?.message || err?.message || 'Login failed. Please try again.';
+      setError(msg);
     }
   };
 

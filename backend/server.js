@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -11,6 +12,7 @@ require('./models/User');
 require('./models/Product');
 require('./models/Journal');
 require('./models/Order');
+require('./models/CartItem');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -43,11 +45,23 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// ─── Static Files (Uploaded Images) ──────────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // ─── Request Logger ───────────────────────────────────────────────────────────
 app.use((req, res, next) => {
   console.log(`📡 ${req.method} ${req.url}`);
   next();
 });
+
+// ─── Security Headers (Helmet) ────────────────────────────────────────────────
+// Helmet sets best-practice HTTP headers: X-Content-Type-Options, X-Frame-Options,
+// X-XSS-Protection, HSTS, Referrer-Policy, CSP, and more.
+// crossOriginResourcePolicy disabled so Unsplash / CDN images load correctly.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: false,  // Disabled — Vite injects inline scripts during dev
+}));
 
 // ─── Lazy DB Connect (Vercel Serverless) ─────────────────────────────────────
 // On Vercel, module.exports = app means there is NO persistent process.
@@ -81,6 +95,7 @@ app.get('/api/health', async (req, res) => {
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use('/api/users', require('./routes/authRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/cart',  require('./routes/cartRoutes'));
 app.use('/api', require('./routes/rootRoutes'));
 
 // ─── 404 Catch-all ───────────────────────────────────────────────────────────

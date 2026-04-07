@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ArrowRight } from 'lucide-react';
+import ProductSection from '../components/ProductSection';
 
 export default function Home() {
   return (
@@ -75,6 +76,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Featured Product Section */}
+      <ProductSection />
 
       {/* Current Update Widget */}
       <section className="container mx-auto px-6 mb-20">
